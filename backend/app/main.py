@@ -43,9 +43,15 @@ from .payments import create_unlock_session
 
 app = FastAPI(title="Compare Your Website API", version="1.0.0")
 
+# CORS — three rules combined:
+#   1. Exact matches from ALLOWED_ORIGINS (env-configurable, includes localhost).
+#   2. Regex match for *.vercel.app subdomains so every Vercel preview URL works
+#      without re-listing each new build's domain.
+#   3. Fallback to "*" only if neither list is configured.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS or ["*"],
+    allow_origin_regex=settings.ALLOWED_ORIGIN_REGEX or None,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

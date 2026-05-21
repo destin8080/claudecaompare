@@ -15,6 +15,12 @@ class Settings:
         for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
         if o.strip()
     ]
+    # Regex matched against the Origin header — defaults to any *.vercel.app
+    # subdomain so Vercel preview deployments work without re-listing each URL.
+    ALLOWED_ORIGIN_REGEX: str = os.getenv(
+        "ALLOWED_ORIGIN_REGEX",
+        r"^https://([a-z0-9-]+\.)*vercel\.app$",
+    ).strip()
     MAX_PAGES_PER_SITE: int = int(os.getenv("MAX_PAGES_PER_SITE", "8"))
     PAGE_TIMEOUT_MS: int = int(os.getenv("PAGE_TIMEOUT_MS", "20000"))
 
