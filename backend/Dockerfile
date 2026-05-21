@@ -20,9 +20,12 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Application code
 COPY app ./app
 
-# Railway / Render / Fly all inject $PORT; default to 8000 for local docker run.
-ENV PORT=8000
-EXPOSE 8000
+# Railway / Render / Fly all inject $PORT; default to 8080 when running the
+# image standalone (e.g. `docker run`).
+EXPOSE 8080
 
-# Shell form so ${PORT} is expanded at container start.
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT}
+# Exec-form CMD invoking sh -c so ${PORT} expands at container start. Railway
+# was passing the literal string "$PORT" to uvicorn when the start command
+# was defined in railway.toml — keeping the start command in the Dockerfile
+# avoids that.
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
