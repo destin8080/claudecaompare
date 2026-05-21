@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { analyze, checkout, fetchConfig, type AnalyzeResponse } from "@/lib/api";
 import { dict, type Lang } from "@/lib/i18n";
 import Gauge from "@/components/Gauge";
-import InteractiveForm from "@/components/InteractiveForm";
 
 type Cfg = { stripe_enabled: boolean; unlock_price_cents: number; unlock_price_display: string };
 
-const statusMap = { pass: "pass", weak: "warn", missing: "fail" } as const;
+const statusMap = { weak: "warn", missing: "fail" } as const;
 
 function money(n: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
@@ -247,24 +246,30 @@ export default function Home() {
             <div className="block-head"><span className="sec-num">01</span><h2>{t.sec01}</h2></div>
             <p className="block-intro">{t.sec01Intro}</p>
 
-            <div className="trust-list">
-              {report.trust.map((tk) => {
-                const cls = statusMap[tk.status];
-                const text =
-                  tk.status === "pass" ? t.pass :
-                  tk.status === "weak" ? t.weak : t.missing;
-                return (
-                  <div className="trust-row" key={tk.key}>
-                    <div>
-                      <div className="name">{tk.name}</div>
-                      <div className="note">{tk.note}</div>
-                      {tk.evidence && <div className="ev">{tk.evidence}</div>}
-                    </div>
-                    <div className={`status ${cls}`}>{text}</div>
-                  </div>
-                );
-              })}
-            </div>
+            {(() => {
+              const issues = report.trust.filter((tk) => tk.status !== "pass");
+              if (issues.length === 0) {
+                return <div className="empty" style={{ marginTop: 0 }}><p>{t.sec01AllPass}</p></div>;
+              }
+              return (
+                <div className="trust-list">
+                  {issues.map((tk) => {
+                    const cls = statusMap[tk.status as "weak" | "missing"];
+                    const text = tk.status === "weak" ? t.weak : t.missing;
+                    return (
+                      <div className="trust-row" key={tk.key}>
+                        <div>
+                          <div className="name">{tk.name}</div>
+                          <div className="note">{tk.note}</div>
+                          {tk.evidence && <div className="ev">{tk.evidence}</div>}
+                        </div>
+                        <div className={`status ${cls}`}>{text}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </section>
 
           {/* SECTION 02 — CONFLICTS */}
@@ -339,58 +344,9 @@ export default function Home() {
             <p className="honest">{t.modelHonest}</p>
           </section>
 
-          {/* SECTION 03 — INTERACTIVE FIX */}
+          {/* SECTION 03 — ACTIONS */}
           <section className="block">
             <div className="block-head"><span className="sec-num">03</span><h2>{t.sec03}</h2></div>
-            <p className="block-intro">{t.sec03Intro}</p>
-
-            <div className="fix-grid">
-              <InteractiveForm lang={lang} />
-              <div className="legend">
-                <h3>{lang === "zh" ? "每个标号为何重要" : "Why each marker matters"}</h3>
-                <p className="lintro">{lang === "zh" ? "七处改动，对应左侧预览。" : "Seven changes, mapped to the preview on the left."}</p>
-                <Litem n={1} title={t.why1} desc={t.why1d} />
-                <Litem n={2} title={t.why2} desc={t.why2d} flag={t.add} dark />
-                <Litem n={3} title={t.why3} desc={t.why3d} />
-                <Litem n={4} title={t.why4} desc={t.why4d} flag={t.verify} dark />
-                <Litem n={5} title={t.why5} desc={t.why5d} />
-                <Litem n={6} title={t.why6} desc={t.why6d} />
-                <Litem n={7} title={t.why7} desc={t.why7d} />
-              </div>
-            </div>
-
-            <div className="checkbox-note">
-              <h4>{t.formAuditTitle}</h4>
-              <ul>
-                {locked ? (
-                  <>
-                    <li>▒ {lang === "zh" ? "解锁后显示你站内表单的具体问题" : "Unlock to see the specific issues found on your form"}</li>
-                    <li>▒ ▒▒▒▒▒▒</li>
-                    <li>▒ ▒▒▒▒▒▒</li>
-                  </>
-                ) : (
-                  (report.forms?.forms || []).map((f, i) => (
-                    <li key={i}>
-                      <b>{lang === "zh" ? "表单于" : "Form at"} {f.page_url}</b> — {f.required_fields} {lang === "zh" ? "必填字段" : "required fields"} ({f.essential_required} {lang === "zh" ? "必要" : "essential"}, {f.extra_required} {lang === "zh" ? "多余" : "extra"}).
-                      {f.fields.filter(x => x.required && !x.is_essential).length > 0 && (
-                        <div style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 4 }}>
-                          {lang === "zh" ? "多余必填：" : "Extras: "}
-                          {f.fields.filter(x => x.required && !x.is_essential).map(x => x.label || x.name).join(", ")}
-                        </div>
-                      )}
-                    </li>
-                  ))
-                )}
-                {!locked && (report.forms?.forms.length ?? 0) === 0 && (
-                  <li>{lang === "zh" ? "本次抓取未发现询价/联系表单。如表单藏在登录后或弹窗内，工具看不见。" : "No inquiry / contact form reached. If it's behind a login or pop-up, the audit cannot see it."}</li>
-                )}
-              </ul>
-            </div>
-          </section>
-
-          {/* SECTION 04 — ACTIONS */}
-          <section className="block">
-            <div className="block-head"><span className="sec-num">04</span><h2>{t.sec04}</h2></div>
             <div className="actions">
               {report.actions.map((a, i) => (
                 <div className="act" key={i}>
@@ -418,18 +374,6 @@ export default function Home() {
           </footer>
         </>
       )}
-    </div>
-  );
-}
-
-function Litem({ n, title, desc, flag, dark }: { n: number; title: string; desc: string; flag?: string; dark?: boolean }) {
-  return (
-    <div className="litem">
-      <div className={`lpin ${dark ? "add" : ""}`}>{n}</div>
-      <div className="ltext">
-        <b>{title}</b>{flag && <span className="miss">{flag}</span>}
-        <p>{desc}</p>
-      </div>
     </div>
   );
 }
