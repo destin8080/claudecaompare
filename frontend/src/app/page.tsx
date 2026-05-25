@@ -179,14 +179,15 @@ export default function Home() {
       </div>
 
       {!report && !loading && (
-        <div className="empty">
+        <div className="stage">
           <h3>{lang === "zh" ? "输入网址，开始审计" : "Enter a URL and run the audit"}</h3>
           <p>{t.heroLede}</p>
         </div>
       )}
 
       {loading && (
-        <div className="empty">
+        <div className="stage">
+          <div className="spinner" aria-hidden="true" />
           <h3>{t.analyzing}</h3>
           <p>{lang === "zh" ? "正在抓取页面并分析。首次运行可能需要 20–40 秒。" : "Crawling pages and running checks. First run can take 20–40s."}</p>
         </div>
